@@ -3,9 +3,19 @@
   "name": "statuspage-discord-relay",
   "main": "src/index.js",
   "compatibility_date": "2025-06-01",
+  // Keep the *.workers.dev URL alive alongside the custom domain below. Adding a
+  // route otherwise disables workers.dev by default.
+  "workers_dev": true,
   "observability": {
     "enabled": true
   },
+
+  // Custom domain: each status page subscribes at  https://sp.mykk.us/<route>?token=…
+  // The hostname is shared; the path (e.g. /proton) selects the route. Provisioning
+  // the custom domain creates the DNS record + edge cert on the mykk.us zone.
+  "routes": [
+    { "pattern": "sp.mykk.us", "custom_domain": true }
+  ],
 
   // ── Secrets (set with `wrangler secret put <NAME>`, never commit them) ──────
   //   ROUTES       JSON map of "<route>": { url, name?, token?, mention?, username?, avatar? }
