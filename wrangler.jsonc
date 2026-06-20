@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "statuspage-discord-relay",
+  "main": "src/index.js",
+  "compatibility_date": "2025-06-01",
+  "observability": {
+    "enabled": true
+  },
+
+  // ── Secrets (set with `wrangler secret put <NAME>`, never commit them) ──────
+  //   ROUTES       JSON map of "<route>": { url, name?, token?, mention?, username?, avatar? }
+  //                See routes.example.json for the shape.
+  //   RELAY_TOKEN  Optional global fallback token for routes without their own.
+  //
+  // For local development, put the same values in .dev.vars (see .dev.vars.example).
+
+  // ── Optional KV upgrade path ───────────────────────────────────────────────
+  // Prefer KV over the ROUTES secret once you have many pages or want to edit a
+  // single route without re-pasting the whole map. Create the namespace with
+  //   wrangler kv namespace create ROUTES_KV
+  // then uncomment and paste the printed id. KV wins over ROUTES when bound, and
+  // each route is stored under the key  route:<route>.
+  //
+  // "kv_namespaces": [
+  //   { "binding": "ROUTES_KV", "id": "<your-namespace-id>" }
+  // ]
+}
