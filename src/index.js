@@ -16,7 +16,12 @@ import { buildDiscordMessage } from "./transform.js";
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const key = url.pathname.split("/").filter(Boolean)[0];
+    const segments = url.pathname.split("/").filter(Boolean);
+    const key = segments[0];
+    // The token may ride in the path (/route/<token>) — the most reliable
+    // channel, since some webhook senders don't preserve query strings. A
+    // ?token= query param and an Authorization: Bearer header also work.
+    const pathToken = segments[1];
 
     // Root: health check / browser hits.
     if (!key) {
@@ -28,18 +33,15 @@ export default {
       return text(`No route configured for "${key}".`, 404);
     }
 
-    // Auth: per-route token, else the global RELAY_TOKEN. Enforced only when
-    // one is configured, accepted via ?token= or an Authorization: Bearer header.
+    // Authentication gates whether we FORWARD to Discord — never the HTTP status.
+    // A configured route must always answer 2xx or the status page deactivates
+    // the subscription (the exact failure this project exists to prevent). So a
+    // missing/invalid token is acknowledged with a 2xx but simply not relayed.
     const expected = route.token ?? env.RELAY_TOKEN;
-    if (expected) {
-      const provided = url.searchParams.get("token") || bearer(request);
-      if (!timingSafeEqual(provided, expected)) {
-        return text("Forbidden", 403);
-      }
-    }
+    const provided = pathToken || url.searchParams.get("token") || bearer(request);
+    const authed = !expected || timingSafeEqual(provided, expected);
 
-    // Non-POST (subscription verification GETs, health probes): acknowledge so
-    // the source treats the endpoint as healthy.
+    // Non-POST (verification GETs, health probes): acknowledge as healthy.
     if (request.method !== "POST") {
       return text("ok", 200);
     }
@@ -48,8 +50,15 @@ export default {
     try {
       payload = await request.json();
     } catch {
-      // Not JSON (or empty test ping) — still ack so we stay subscribed.
-      return text("ignored: invalid JSON", 200);
+      // Not JSON (e.g. a verification ping) — still ack so we stay subscribed.
+      return text("ok", 200);
+    }
+
+    if (!authed) {
+      // Acknowledge so the subscription survives, but don't relay unverified
+      // posts. `wrangler tail` surfaces these for debugging a token mismatch.
+      console.log(`relay: unauthenticated POST to /${key} — acknowledged, not relayed`);
+      return text("ok (unauthenticated; not relayed)", 200);
     }
 
     const message = buildDiscordMessage(payload, route);
