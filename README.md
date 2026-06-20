@@ -38,8 +38,8 @@ page maps to which Discord webhook?* That's keyed off the **first path segment**
 of the URL each page subscribes to:
 
 ```
-https://<worker>/proton?token=…       →  ROUTES["proton"].url    (a Discord channel)
-https://<worker>/github?token=…       →  ROUTES["github"].url     (another channel)
+https://<worker>/proton/<token>       →  ROUTES["proton"].url    (a Discord channel)
+https://<worker>/github/<token>       →  ROUTES["github"].url     (another channel)
 ```
 
 The routing table lives in a **single JSON secret** (`ROUTES`), not a committed
@@ -83,10 +83,10 @@ npx wrangler deploy
 ```
 
 Then for each status page, subscribe its webhook to your Worker URL with the
-route key and token — **not** the Discord URL:
+route key and token in the path — **not** the Discord URL:
 
 ```
-https://statuspage-discord-relay.<your-subdomain>.workers.dev/proton?token=<that route's token>
+https://statuspage-discord-relay.<your-subdomain>.workers.dev/proton/<that route's token>
 ```
 
 On Statuspage: **Manage subscribers → Webhook**, or use the re-subscribe link in
@@ -113,7 +113,7 @@ the "Webhook problem detected" email.
 | ---------- | :------: | -------------------------------------------------------------------------------------------- |
 | `url`      |    ✅     | The Discord webhook URL — this *is* the target server + channel.                              |
 | `name`     |          | Shown in the embed footer (e.g. the page's name).                                            |
-| `token`    |          | Per-route shared secret; overrides `RELAY_TOKEN`. Passed as `?token=` or `Authorization: Bearer`. |
+| `token`    |          | Per-route shared secret; overrides `RELAY_TOKEN`. Supplied in the URL **path** (`/route/<token>`, recommended), or via `?token=` / `Authorization: Bearer`. |
 | `mention`  |          | Content pinged **only** on major/critical incidents and `major_outage` components. e.g. `<@&ROLE_ID>` or `@here`. |
 | `username` |          | Overrides the Discord webhook's display name for this source.                                |
 | `avatar`   |          | Overrides the Discord webhook's avatar (image URL).                                          |
@@ -129,10 +129,21 @@ fake embeds into your channel. Guard against it with a token:
 
 - Set a per-route `token` in `ROUTES`, and/or a global `RELAY_TOKEN`.
 - The route's own `token` takes precedence; `RELAY_TOKEN` is the fallback.
-- If neither is set for a route, that route accepts any POST (handy for testing,
+- If neither is set for a route, that route relays any POST (handy for testing,
   **not** recommended for production).
-- Tokens are compared in constant time and may be passed as `?token=…` or an
+- The token is compared in constant time and may be supplied three ways:
+  in the URL **path** (`/route/<token>`), as `?token=…`, or as an
   `Authorization: Bearer …` header.
+
+**Put the token in the path** (`https://<host>/<route>/<token>`). The token
+gates *whether the post is relayed to Discord* — it never changes the HTTP
+status. A configured route **always answers `2xx`**, even on a missing/invalid
+token (the request is acknowledged but not forwarded). This is deliberate:
+status pages deactivate any endpoint that returns a non-2xx, so a `403` would
+get the subscription killed — the precise failure this relay exists to prevent.
+Some senders also drop query strings, which would silently strip a `?token=`;
+the path survives. An unauthenticated POST is logged (visible via
+`wrangler tail`) so a token mismatch is easy to spot.
 
 Keep `ROUTES`, `routes.json`, and `.dev.vars` out of git — they're already in
 `.gitignore`. They contain live Discord webhook URLs, which are themselves
@@ -173,7 +184,7 @@ npm run dev                      # wrangler dev on http://localhost:8787
 Send it a sample payload:
 
 ```bash
-curl -X POST 'http://localhost:8787/proton?token=dev-token' \
+curl -X POST 'http://localhost:8787/proton/dev-token' \
   -H 'content-type: application/json' \
   -d '{"incident":{"name":"Test","status":"investigating","impact":"minor",
        "shortlink":"https://stspg.io/x",

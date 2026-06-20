@@ -61,11 +61,31 @@ test("valid token + incident -> 200 and forwards a Discord embed", async () => {
   assert.equal(h.calls[0].body.embeds[0].footer.text, "Proton");
 });
 
-test("missing/wrong token -> 403 and no forward", async () => {
+test("wrong token -> 200 ack but NOT relayed (never 4xx, or the page deactivates)", async () => {
   const res = await worker.fetch(post("/proton?token=wrong", statuspageIncident), { ROUTES }, h.ctx);
-  assert.equal(res.status, 403);
+  assert.equal(res.status, 200);
   await h.settle();
   assert.equal(h.calls.length, 0);
+});
+
+test("missing token -> 200 ack but NOT relayed", async () => {
+  const res = await worker.fetch(post("/proton", statuspageIncident), { ROUTES }, h.ctx);
+  assert.equal(res.status, 200);
+  await h.settle();
+  assert.equal(h.calls.length, 0);
+});
+
+test("token in the URL path (/route/<token>) -> relays", async () => {
+  const req = new Request("https://relay.example.dev/proton/secret", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(statuspageIncident),
+  });
+  const res = await worker.fetch(req, { ROUTES }, h.ctx);
+  assert.equal(res.status, 200);
+  await h.settle();
+  assert.equal(h.calls.length, 1);
+  assert.equal(h.calls[0].url, "https://discord.test/webhook/proton");
 });
 
 test("token may be supplied via Authorization: Bearer", async () => {
@@ -83,8 +103,13 @@ test("token may be supplied via Authorization: Bearer", async () => {
 test("global RELAY_TOKEN applies when a route has no token", async () => {
   const ok = await worker.fetch(post("/open?token=global", statuspageIncident), { ROUTES, RELAY_TOKEN: "global" }, h.ctx);
   assert.equal(ok.status, 200);
+  await h.settle();
+  assert.equal(h.calls.length, 1, "correct global token relays");
+
   const bad = await worker.fetch(post("/open?token=nope", statuspageIncident), { ROUTES, RELAY_TOKEN: "global" }, h.ctx);
-  assert.equal(bad.status, 403);
+  assert.equal(bad.status, 200, "still 2xx");
+  await h.settle();
+  assert.equal(h.calls.length, 1, "wrong global token is not relayed");
 });
 
 test("unknown payload shape -> 200 but nothing forwarded", async () => {
