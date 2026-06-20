@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Wrangler / Cloudflare
+.wrangler/
+dist/
+
+# Local secrets — NEVER commit these (they hold Discord webhook URLs + tokens)
+.dev.vars
+routes.json
+*.local
+
+# Logs / OS / editor cruft
+*.log
+npm-debug.log*
+.DS_Store
+.idea/
+.vscode/

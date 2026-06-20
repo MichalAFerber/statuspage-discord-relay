@@ -1,0 +1,33 @@
+{
+  "name": "statuspage-discord-relay",
+  "version": "1.0.0",
+  "description": "A Cloudflare Worker that relays Atlassian Statuspage / Instatus webhook notifications into Discord channels, with per-source routing.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "test": "node --test",
+    "test:watch": "node --test --watch"
+  },
+  "keywords": [
+    "cloudflare-workers",
+    "discord",
+    "discord-webhook",
+    "statuspage",
+    "instatus",
+    "webhook",
+    "relay",
+    "status-page"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "wrangler": "^4.103.0"
+  }
+}

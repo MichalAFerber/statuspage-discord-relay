@@ -1,0 +1,18 @@
+{
+  "proton": {
+    "url": "https://discord.com/api/webhooks/000000000000000000/EXAMPLE_PROTON_WEBHOOK_TOKEN",
+    "name": "Proton",
+    "token": "replace-with-a-long-random-string-1"
+  },
+  "github": {
+    "url": "https://discord.com/api/webhooks/000000000000000000/EXAMPLE_GITHUB_WEBHOOK_TOKEN",
+    "name": "GitHub",
+    "mention": "<@&123456789012345678>"
+  },
+  "cloudflare": {
+    "url": "https://discord.com/api/webhooks/000000000000000000/EXAMPLE_CF_WEBHOOK_TOKEN",
+    "name": "Cloudflare",
+    "username": "Status Relay",
+    "avatar": "https://www.cloudflare.com/favicon.ico"
+  }
+}

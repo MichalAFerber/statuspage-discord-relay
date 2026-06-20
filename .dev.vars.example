@@ -1,0 +1,8 @@
+# Local development secrets for `wrangler dev`.
+# Copy to `.dev.vars` (which is gitignored) and fill in real values.
+#
+# ROUTES is a single-line JSON string. Example:
+ROUTES={"proton":{"url":"https://discord.com/api/webhooks/000/EXAMPLE","name":"Proton","token":"dev-token"}}
+
+# Optional global fallback token for routes that don't set their own:
+# RELAY_TOKEN=some-dev-token
